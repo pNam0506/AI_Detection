@@ -143,7 +143,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-v9so#dfj_o!7=b&fz!74d
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # Automatically turns False when deployed to Render
-DEBUG = 'RENDER' not in os.environ
+DEBUG = True
 
 # Allow Render's internal routing and domain fallback
 ALLOWED_HOSTS = ['*']
