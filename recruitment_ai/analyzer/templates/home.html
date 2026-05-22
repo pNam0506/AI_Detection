@@ -1,0 +1,282 @@
+<!doctype html>
+<html>
+  <head>
+    <title>AI Recruitment System</title>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 40px;
+        background-color: #f8f9fa;
+      }
+
+      h1 {
+        text-align: center;
+      }
+
+      .container {
+        display: flex;
+        gap: 40px;
+        margin-top: 30px;
+      }
+
+      .box {
+        flex: 1;
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      h2 {
+        margin-top: 0;
+      }
+
+      button {
+        padding: 10px 18px;
+        border: none;
+        background-color: #007bff;
+        color: white;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      .upload-box {
+        border: 2px dashed #999;
+        padding: 30px;
+        text-align: center;
+        cursor: pointer;
+        border-radius: 10px;
+        transition: 0.3s;
+      }
+
+      .upload-box:hover {
+        background-color: #f1f1f1;
+        border-color: #007bff;
+      }
+
+      video {
+        width: 100%;
+        border-radius: 10px;
+        margin-top: 15px;
+      }
+
+      textarea {
+        border-radius: 8px;
+        padding: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>AI Recruitment System</h1>
+
+    <div class="container">
+      <!-- ================= LEFT SIDE ================= -->
+      <div class="box">
+        <h2>Resume Analysis</h2>
+
+        <a
+          href="https://www.kickresume.com/en/help-center/resume-samples/?page=1"
+          class="btn"
+          ><button>Resume Idea</button></a
+        >
+
+        <form method="POST" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <!-- Hidden file input -->
+          <input type="file" name="resume" id="resumeInput" hidden />
+
+          <!-- Clickable upload box -->
+          <div
+            class="upload-box"
+            onclick="document.getElementById('resumeInput').click()"
+          >
+            Click here to upload Resume
+          </div>
+
+          <p id="fileName" style="margin-top: 10px; font-size: 14px"></p>
+
+          <br />
+
+          <textarea
+            name="job_desc"
+            rows="5"
+            style="width: 100%"
+            placeholder="Paste Job Description here..."
+          ></textarea>
+
+          <br /><br />
+
+          <button type="submit">Submit</button>
+        </form>
+
+        {% if result %}
+        <h3>{{ result }}</h3>
+        {% endif %} {% if level %}
+        <h4>Evaluation Level: {{ level }}</h4>
+        {% endif %} {% if matched_skills %}
+        <h4>Matched Skills:</h4>
+        <ul>
+          {% for skill in matched_skills %}
+          <li style="color: green">✔ {{ skill }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %} {% if missing_skills %}
+        <h4>Missing Skills:</h4>
+        <ul>
+          {% for skill in missing_skills %}
+          <li style="color: red">✘ {{ skill }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %} {% comment %} {% if jd_keywords %}
+        <h4>Detected Key Requirements from Job Description:</h4>
+        <ul>
+          {% for kw in jd_keywords %}
+          <li>{{ kw }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %} {% endcomment %} {% comment %} {% if recommendations %}
+        <h4>AI Recommendations:</h4>
+        <ul>
+          {% for rec in recommendations %}
+          <li style="color: blue">➤ {{ rec }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %} {% endcomment %}
+
+        <h3>Resume Structure Score: {{ structure_score|floatformat:2 }}%</h3>
+
+        {% if found_sections %}
+        <p>Missing Sections:</p>
+        <ul>
+          {% for section in found_sections %}
+          <li style="color: green">✔ {{ section }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %} {% if missing_sections %}
+        <p>Missing Sections:</p>
+        <ul>
+          {% for section in missing_sections %}
+          <li style="color: red">✘ {{ section }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        <h3>Resume Design Evaluation</h3>
+        <p><strong>Analysis:</strong> {{ color_feedback }}</p>
+        <p><strong>Recommendation:</strong> {{ color_recommendation }}</p>
+
+        <h3>Layout Analysis</h3>
+        <pre>{{ layout_feedback }}</pre>
+
+        <div style="margin-top: 20px">
+          <p>Result will appear here...</p>
+        </div>
+      </div>
+
+      <!-- ================= RIGHT SIDE ================= -->
+      <div class="box">
+        <h2>Body Language Detection</h2>
+
+        <button onclick="startCamera()">Start Camera</button>
+
+        <video id="camera" autoplay></video>
+
+        <p id="prediction">Prediction: -</p>
+        <p id="confidence"></p>
+        <p id="feedback" style="color: blue"></p>
+      </div>
+    </div>
+
+    <script>
+      let videoStream = null;
+      let intervalId = null;
+
+      async function startCamera() {
+        const video = document.getElementById("camera");
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+        video.srcObject = videoStream;
+
+        // เริ่มวิเคราะห์ทุก 1 วิ
+        intervalId = setInterval(analyzeFrame, 1000);
+      }
+
+      async function analyzeFrame() {
+        const video = document.getElementById("camera");
+
+        if (video.videoWidth === 0) return;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0);
+
+        canvas.toBlob(async function (blob) {
+          const formData = new FormData();
+          formData.append("frame", blob);
+
+          const response = await fetch("/analyze-body/", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await response.json();
+
+          if (data.error) return;
+
+          // แสดง prediction
+          document.getElementById("prediction").innerText =
+            "Prediction: " + data.prediction;
+
+          // ===== Feedback =====
+          let feedback = document.getElementById("feedback");
+          let message = "";
+
+          if (data.prediction === "Discomfort") {
+            message =
+              "You seem uncomfortable. เอามือลง เอามือประสานไว้ข้างหน้า";
+            feedback.style.color = "red";
+          }
+          
+          else if (data.prediction === "Anxiety") {
+            message =
+              "You look a bit nervous. เอามือหรือแขนของคุณออกมาจากด้านหลัง และประสานมือไว้ข้างหน้า";
+            feedback.style.color = "orange";
+          } else if (data.prediction === "Appropriate") {
+            message = "Great posture! You look confident.";
+            feedback.style.color = "green";
+          }
+          else if (data.prediction === "Bored") {
+            message =
+              "You seem Bored. เอามือของคุณลงหรือห่างจากกล้องเล็กน้อย นั่งหลังตรง ยิ้มนิดนึง";
+            feedback.style.color = "red";
+          }
+          else if (data.prediction === "Better") {
+            message = "Great posture! You look confident.";
+            feedback.style.color = "green";
+          }
+
+          feedback.innerText = message;
+        });
+      }
+
+      // Show selected file name
+      document
+        .getElementById("resumeInput")
+        .addEventListener("change", function () {
+          const fileName = this.files[0]?.name || "No file selected";
+          document.getElementById("fileName").innerText =
+            "Selected file: " + fileName;
+        });
+    </script>
+  </body>
+</html>
