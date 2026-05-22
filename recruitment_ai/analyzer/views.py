@@ -240,15 +240,71 @@ def analyze_resume_structure(resume_text):
 
     return found_sections, missing_sections, structure_score
 
+# def analyze_resume_color(pdf_file):
+#     pdf_file.seek(0)
+#     pdf_bytes = pdf_file.read()
+
+#     images = convert_from_bytes(
+#         pdf_bytes,
+#         first_page=1,
+#         last_page=1,
+#         poppler_path=r"C:\Users\Pinmanee\Downloads\Release-25.12.0-0\poppler-25.12.0\Library\bin"
+#     )
+
+#     img = images[0]
+#     img = img.resize((300, 300))
+
+#     img_array = np.array(img)
+#     pixels = img_array.reshape(-1, 3)
+
+#     avg_color = np.mean(pixels, axis=0)
+#     r, g, b = avg_color
+
+#     brightness = (r + g + b) / 3
+#     color_variance = np.std(pixels)
+
+#     recommendation = ""
+
+#     if brightness > 240:
+#         feedback = "Resume is very bright and minimal."
+#         recommendation = (
+#             "Consider adding subtle accent colors such as Navy Blue (#1F3A8A) "
+#             "or Dark Gray (#374151) to enhance visual hierarchy."
+#         )
+
+#     elif color_variance > 70:
+#         feedback = "Highly colorful resume detected."
+#         recommendation = (
+#             "For corporate or technical roles, consider neutral tones like "
+#             "Dark Blue (#1E3A8A), Charcoal (#333333), or Slate Gray (#475569)."
+#         )
+
+#     else:
+#         feedback = "Professional color balance detected."
+#         recommendation = (
+#             "Maintain current tone. For refinement, use one primary color "
+#             "and one accent color to ensure consistency."
+#         )
+
+#     pdf_file.seek(0)
+
+#     return feedback, recommendation
+
 def analyze_resume_color(pdf_file):
     pdf_file.seek(0)
     pdf_bytes = pdf_file.read()
+
+    # Determine the correct Poppler path depending on the host environment
+    if 'RENDER' in os.environ:
+        POPPLER_PATH = "/usr/bin"
+    else:
+        POPPLER_PATH = r"C:\Users\Pinmanee\Downloads\Release-25.12.0-0\poppler-25.12.0\Library\bin"
 
     images = convert_from_bytes(
         pdf_bytes,
         first_page=1,
         last_page=1,
-        poppler_path=r"C:\Users\Pinmanee\Downloads\Release-25.12.0-0\poppler-25.12.0\Library\bin"
+        poppler_path=POPPLER_PATH  # <-- Dynamic environment switch
     )
 
     img = images[0]
